@@ -42,7 +42,7 @@ import {
   FeatureUsageLog,
 } from '../types';
 import { storage } from '../lib/storage';
-import { fetchCloudFeatureUsage } from '../lib/supabase';
+import { fetchCloudFeatureUsage, fetchRecentUsageLogs } from '../lib/supabase';
 
 interface UserDashboardProps {
   currentUser: UserProfile;
@@ -65,9 +65,12 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   const [recommendedJobs, setRecommendedJobs] = useState<RemotiveJob[]>([]);
   const [jobsLoading, setJobsLoading] = useState<boolean>(true);
 
-  // Feature usage & engagement state (backed by Supabase table public.feature_usage_logs)
+  // Feature usage & engagement state (backed by Supabase table public.feature_usage)
   const [engagement, setEngagement] = useState<EngagementSummary>(() =>
     storage.getEngagementSummary(currentUser.id)
+  );
+  const [recentLogs, setRecentLogs] = useState<FeatureUsageLog[]>(() =>
+    storage.getUsageLogs(currentUser.id).slice(0, 5)
   );
   const [isSyncingUsage, setIsSyncingUsage] = useState<boolean>(false);
   const [isCloudSynced, setIsCloudSynced] = useState<boolean>(false);
@@ -75,14 +78,22 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   const loadUsageLogs = async () => {
     setIsSyncingUsage(true);
     try {
-      const cloudLogs = await fetchCloudFeatureUsage(currentUser.id);
-      const summary = storage.getEngagementSummary(currentUser.id, cloudLogs);
+      // Specifically fetch the last 5 recent usage logs from the Supabase feature_usage table
+      const cloudRecent = await fetchRecentUsageLogs(currentUser.id, 5);
+      const allCloudLogs = await fetchCloudFeatureUsage(currentUser.id, 100);
+      const summary = storage.getEngagementSummary(currentUser.id, allCloudLogs);
       setEngagement(summary);
-      if (cloudLogs.length > 0) {
+
+      if (cloudRecent.length > 0) {
+        setRecentLogs(cloudRecent);
         setIsCloudSynced(true);
+      } else if (summary.recentLogs.length > 0) {
+        setRecentLogs(summary.recentLogs.slice(0, 5));
       }
     } catch (e) {
       console.warn('Failed to fetch cloud usage logs', e);
+      const fallback = storage.getUsageLogs(currentUser.id).slice(0, 5);
+      setRecentLogs(fallback);
     } finally {
       setIsSyncingUsage(false);
     }
@@ -806,26 +817,26 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
             </div>
           </div>
 
-          {/* Right: Recent Activity Log Feed */}
+          {/* Right: Recent Activity Log Feed (Last 5 Supabase feature_usage events) */}
           <div className="lg:col-span-5 p-4 rounded-xl bg-[#131826]/50 border border-[#1e2638] flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-bold text-white flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 text-cyan-400" />
-                  Recent Activity Stream
+                  Recent Activity Stream (Last 5 Events)
                 </span>
-                <span className="text-[10px] font-mono text-slate-500">
-                  Live Audit
+                <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/70 border border-cyan-800/60 px-1.5 py-0.5 rounded">
+                  feature_usage
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 mb-3">
-                Live chronological audit of your career preparation steps.
+                Live chronological snapshot of your 5 most recent actions.
               </p>
             </div>
 
-            <div className="space-y-2.5 overflow-y-auto max-h-[170px] pr-1">
-              {engagement.recentLogs && engagement.recentLogs.length > 0 ? (
-                engagement.recentLogs.slice(0, 4).map((log) => {
+            <div className="space-y-2.5 overflow-y-auto max-h-[195px] pr-1">
+              {recentLogs && recentLogs.length > 0 ? (
+                recentLogs.slice(0, 5).map((log) => {
                   const logDate = new Date(log.createdAt);
                   const formattedTime = !isNaN(logDate.getTime())
                     ? logDate.toLocaleDateString(undefined, {
@@ -836,10 +847,23 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                       })
                     : 'Recent';
 
+                  const detailText =
+                    log.actionDescription ||
+                    (log.metadata?.action_description as string) ||
+                    (log.metadata?.role && log.metadata?.company
+                      ? `${log.metadata.role} at ${log.metadata.company}`
+                      : log.metadata?.company
+                      ? `Application for ${log.metadata.company}`
+                      : log.metadata?.score
+                      ? `ATS Score: ${log.metadata.score}/100`
+                      : log.metadata?.targetRole
+                      ? `Target: ${log.metadata.targetRole}`
+                      : 'Completed action');
+
                   return (
                     <div
                       key={log.id}
-                      className="p-2.5 rounded-lg bg-[#0e121b] border border-[#1e2638] flex items-start gap-2.5 text-xs"
+                      className="p-2.5 rounded-lg bg-[#0e121b] border border-[#1e2638] hover:border-slate-700 transition-colors flex items-start gap-2.5 text-xs"
                     >
                       <div className="mt-0.5 p-1 rounded-md bg-violet-950/60 border border-violet-800 text-cyan-400 shrink-0">
                         {log.featureName === 'resume_analysis' && <FileText className="w-3.5 h-3.5" />}
@@ -861,7 +885,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                           </span>
                         </div>
                         <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
-                          {log.actionDescription || 'Completed action'}
+                          {detailText}
                         </p>
                       </div>
                     </div>
@@ -872,7 +896,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                   <Activity className="w-5 h-5 text-slate-600 mx-auto" />
                   <p className="text-xs font-semibold text-slate-300">No Feature Activity Yet</p>
                   <p className="text-[11px] text-slate-500">
-                    Run a Resume ATS Analysis or track an application to begin logging activity.
+                    Run a Resume ATS Analysis or track an application to log your first event in Supabase.
                   </p>
                 </div>
               )}

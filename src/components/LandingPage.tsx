@@ -13,7 +13,9 @@ import {
   ChevronRight,
   TrendingUp,
   Cpu,
-  GraduationCap
+  GraduationCap,
+  Mic,
+  Sparkles,
 } from 'lucide-react';
 import { SAMPLE_RESUME_TEXT } from '../lib/storage';
 
@@ -72,22 +74,30 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onOpenAuth
               </p>
 
               {/* Primary Action Buttons */}
-              <div className="flex flex-wrap items-center gap-4 pt-2">
+              <div className="flex flex-wrap items-center gap-3 pt-2">
                 <button
-                  onClick={() => onNavigate('resume-analyzer')}
-                  className="flex items-center gap-2 px-6 py-3.5 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 hover:from-violet-500 hover:to-cyan-400 transition-all shadow-lg shadow-violet-900/30"
+                  onClick={() => onNavigate('mock-interviews')}
+                  className="flex items-center gap-2 px-5 py-3.5 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 hover:from-violet-500 hover:to-cyan-400 transition-all shadow-lg shadow-violet-900/30 cursor-pointer"
                 >
-                  <FileText className="w-4 h-4" />
-                  Analyze My Resume Free
+                  <Mic className="w-4 h-4 text-cyan-200" />
+                  Practice Real AI Interview
                   <ArrowRight className="w-4 h-4" />
                 </button>
 
                 <button
-                  onClick={() => onNavigate('dashboard')}
-                  className="flex items-center gap-2 px-5 py-3.5 rounded-lg text-sm font-semibold text-slate-200 bg-[#0e121b] border border-[#1e2638] hover:border-slate-600 hover:text-white transition-colors"
+                  onClick={() => onNavigate('resume-analyzer')}
+                  className="flex items-center gap-2 px-5 py-3.5 rounded-lg text-sm font-semibold text-slate-200 bg-[#0e121b] border border-[#1e2638] hover:border-slate-600 hover:text-white transition-colors cursor-pointer"
                 >
-                  <Layers className="w-4 h-4 text-cyan-400" />
-                  Explore Live Dashboard
+                  <FileText className="w-4 h-4 text-cyan-400" />
+                  Analyze My Resume
+                </button>
+
+                <button
+                  onClick={() => onNavigate('dashboard')}
+                  className="flex items-center gap-2 px-4 py-3.5 rounded-lg text-sm font-semibold text-slate-300 hover:text-white transition-colors cursor-pointer"
+                >
+                  <Layers className="w-4 h-4 text-slate-400" />
+                  Dashboard
                 </button>
               </div>
 
@@ -286,6 +296,37 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onOpenAuth
               <div className="mt-6 flex items-center text-xs font-semibold text-emerald-400 group-hover:text-emerald-300">
                 Open Job Tracker <ArrowRight className="w-3.5 h-3.5 ml-1" />
               </div>
+            </div>
+          </div>
+
+          {/* Real AI Interview Spotlight Banner */}
+          <div className="mt-8 p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-violet-950/40 via-[#131826] to-cyan-950/40 border border-cyan-800/60 shadow-xl flex flex-col lg:flex-row items-center justify-between gap-6 relative overflow-hidden">
+            <div className="space-y-2 max-w-2xl">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-cyan-950 border border-cyan-800 text-cyan-300">
+                  Featured Module
+                </span>
+                <span className="text-xs font-bold text-white flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" /> Real Interview AI Platform
+                </span>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+                Simulate high-stakes technical & behavioral interviews with live AI voice.
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                Step into a simulated interview room with virtual Lead Hiring Lead Alex. Speak aloud using microphone speech recognition, receive dynamic AI drill-down follow-up questions, and learn from Staff-level model answers.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0">
+              <button
+                onClick={() => onNavigate('mock-interviews')}
+                className="px-6 py-3.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-violet-600 to-cyan-500 hover:from-violet-500 hover:to-cyan-400 transition-all flex items-center gap-2 shadow-lg shadow-violet-900/40 cursor-pointer"
+              >
+                <Mic className="w-4 h-4 text-cyan-200" />
+                <span>Launch Real AI Interview Room</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>

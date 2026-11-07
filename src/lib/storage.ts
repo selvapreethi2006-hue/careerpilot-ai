@@ -438,20 +438,42 @@ class StorageService {
 
   addUsageLog(
     featureName: FeatureUsageType,
-    metadata: Record<string, any> = {},
+    descriptionOrMeta?: string | Record<string, any>,
+    metaOrUserId?: Record<string, any> | string,
     userId?: string
   ): FeatureUsageLog {
-    const activeUserId = userId || this.getActiveUserId() || 'anonymous';
-    const logs = this.getUsageLogs(userId);
+    let actionDescription: string | undefined;
+    let metadata: Record<string, any> = {};
+    let resolvedUserId: string | undefined;
+
+    if (typeof descriptionOrMeta === 'string') {
+      actionDescription = descriptionOrMeta;
+      if (typeof metaOrUserId === 'object' && metaOrUserId !== null) {
+        metadata = metaOrUserId;
+        resolvedUserId = userId;
+      } else if (typeof metaOrUserId === 'string') {
+        resolvedUserId = metaOrUserId;
+      }
+    } else if (typeof descriptionOrMeta === 'object' && descriptionOrMeta !== null) {
+      metadata = descriptionOrMeta;
+      actionDescription = metadata.action_description || metadata.description;
+      if (typeof metaOrUserId === 'string') {
+        resolvedUserId = metaOrUserId;
+      }
+    }
+
+    const activeUserId = resolvedUserId || userId || this.getActiveUserId() || 'anonymous';
+    const logs = this.getUsageLogs(activeUserId);
     const newLog: FeatureUsageLog = {
       id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       userId: activeUserId,
       featureName,
+      actionDescription: actionDescription || (metadata?.action_description as string) || undefined,
       metadata,
       createdAt: new Date().toISOString(),
     };
     const updated = [newLog, ...logs];
-    this.saveUsageLogs(updated, userId);
+    this.saveUsageLogs(updated, activeUserId);
     return newLog;
   }
 

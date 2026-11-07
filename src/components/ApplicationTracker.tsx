@@ -27,6 +27,7 @@ import {
   logFeatureUsageToCloud,
 } from '../lib/supabase';
 import { InterviewPrepModal } from './InterviewPrepModal';
+import { ApplicationHeatmap } from './ApplicationHeatmap';
 
 const STATUS_COLUMNS: Array<{ id: ApplicationStatus; label: string; color: string; border: string }> = [
   { id: 'wishlist', label: 'Wishlist / To Apply', color: 'text-slate-400', border: 'border-slate-800' },
@@ -48,6 +49,7 @@ export const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ currentU
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   // Add / Edit Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -160,13 +162,11 @@ export const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ currentU
   };
 
   const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to remove this job application?')) {
-      storage.deleteApplication(id, currentUser?.id);
-      if (currentUser?.id) {
-        deleteApplicationFromCloud(currentUser.id, id);
-      }
-      refreshApplications();
+    storage.deleteApplication(id, currentUser?.id);
+    if (currentUser?.id) {
+      deleteApplicationFromCloud(currentUser.id, id);
     }
+    refreshApplications();
   };
 
   const handleQuickStatusChange = (appId: string, newStatus: ApplicationStatus) => {
@@ -184,7 +184,12 @@ export const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ currentU
       (app.notes && app.notes.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesDate =
+      !selectedDate ||
+      app.applicationDate === selectedDate ||
+      app.applicationDate.startsWith(selectedDate);
+
+    return matchesSearch && matchesStatus && matchesDate;
   });
 
   return (
@@ -238,6 +243,13 @@ export const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ currentU
         </div>
       </div>
 
+      {/* Interactive D3.js Application Activity Heatmap */}
+      <ApplicationHeatmap
+        applications={applications}
+        selectedDate={selectedDate}
+        onSelectDate={setSelectedDate}
+      />
+
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 rounded-xl bg-[#0e121b] border border-[#1e2638]">
         <div className="relative w-full sm:w-80">
@@ -251,7 +263,20 @@ export const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ currentU
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+          {selectedDate && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-950/80 border border-cyan-700 text-xs text-cyan-200">
+              <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Date: {selectedDate}</span>
+              <button
+                onClick={() => setSelectedDate(null)}
+                className="p-0.5 hover:text-white rounded"
+                title="Clear date filter"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
           <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <select
             value={statusFilter}

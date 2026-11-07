@@ -138,17 +138,8 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
         return;
       }
 
-      // Open OAuth provider URL directly in popup
-      const authWindow = window.open(
-        data.url,
-        'github_oauth_popup',
-        'width=600,height=720,status=no,toolbar=no,menubar=no'
-      );
-
-      if (!authWindow) {
-        setError('Popup blocked. Please allow popups for this site to connect with GitHub OAuth.');
-        setOauthLoading(false);
-      }
+      // Navigate safely to GitHub OAuth URL
+      window.location.href = data.url;
     } catch (err: any) {
       setError(`OAuth initiation failed: ${err.message}`);
       setOauthLoading(false);
@@ -165,17 +156,15 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
   };
 
   const handleDisconnect = () => {
-    if (confirm('Disconnect GitHub profile and remove synced repository data from your account?')) {
-      const updatedUser: UserProfile = {
-        ...currentUser,
-        githubProfile: undefined,
-      };
-      storage.setCurrentUser(updatedUser);
-      onUserUpdated(updatedUser);
-      setPreviewProfile(null);
-      setUsername('');
-      setSuccessMsg('GitHub profile disconnected.');
-    }
+    const updatedUser: UserProfile = {
+      ...currentUser,
+      githubProfile: undefined,
+    };
+    storage.setCurrentUser(updatedUser);
+    onUserUpdated(updatedUser);
+    setPreviewProfile(null);
+    setUsername('');
+    setSuccessMsg('GitHub profile disconnected.');
   };
 
   const handleImportProjectsToMasterResume = () => {

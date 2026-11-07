@@ -99,10 +99,8 @@ export const UserProfileComponent: React.FC<UserProfileProps> = ({
   };
 
   const handleResetData = () => {
-    if (confirm('Clear local browser cache for your account? Your Supabase cloud records will remain intact.')) {
-      storage.clearUserData(currentUser.id);
-      window.location.reload();
-    }
+    storage.clearUserData(currentUser.id);
+    window.location.reload();
   };
 
   return (

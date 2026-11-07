@@ -42,7 +42,12 @@ async function generateWithGemini(prompt: string, responseMimeType = 'applicatio
   const models = ['gemini-3.8-flash', 'gemini-3.1-flash-lite'];
 
   for (const model of models) {
+    let timer: NodeJS.Timeout | null = null;
     try {
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`Timeout after 7s on ${model}`)), 7000);
+      });
+
       const response = await Promise.race([
         aiClient.models.generateContent({
           model,
@@ -51,17 +56,18 @@ async function generateWithGemini(prompt: string, responseMimeType = 'applicatio
             responseMimeType,
           },
         }),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Timeout after 8s')), 8000)
-        ),
+        timeoutPromise,
       ]);
+
+      if (timer) clearTimeout(timer);
 
       if (response && response.text) {
         return { text: response.text, modelUsed: model };
       }
     } catch (err: unknown) {
+      if (timer) clearTimeout(timer);
       const message = err instanceof Error ? err.message : String(err);
-      console.warn(`Gemini model ${model} error: ${message}`);
+      console.warn(`Gemini model ${model} notice: ${message}`);
     }
   }
 

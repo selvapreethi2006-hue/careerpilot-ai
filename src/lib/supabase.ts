@@ -849,6 +849,7 @@ export async function saveResumeAuditToCloud(userId: string, audit: any): Promis
 
 // -------------------------------------------------------------
 // FEATURE USAGE TRACKING & ENGAGEMENT METRICS (Supabase table)
+// Supports both public.feature_usage and public.feature_usage_logs
 // -------------------------------------------------------------
 export async function logFeatureUsageToCloud(
   userId: string,
@@ -858,43 +859,87 @@ export async function logFeatureUsageToCloud(
   const supabase = getSupabaseClient();
   if (!supabase || !userId) return { success: false };
 
-  try {
-    const payload = {
-      user_id: userId,
-      feature_name: featureName,
-      metadata,
-      created_at: new Date().toISOString(),
-    };
+  const payload = {
+    user_id: userId,
+    feature_name: featureName,
+    metadata,
+    created_at: new Date().toISOString(),
+  };
 
+  // 1. Try public.feature_usage first
+  try {
+    const { data, error } = await supabase
+      .from('feature_usage')
+      .insert(payload)
+      .select('id')
+      .single();
+
+    if (!error && data?.id) {
+      return { success: true, id: data.id };
+    }
+  } catch {}
+
+  // 2. Fall back to public.feature_usage_logs
+  try {
     const { data, error } = await supabase
       .from('feature_usage_logs')
       .insert(payload)
       .select('id')
       .single();
 
+    if (!error && data?.id) {
+      return { success: true, id: data.id };
+    }
     if (error) {
       console.warn('Error logging feature usage to Supabase:', error.message);
-      return { success: false };
     }
-
-    return { success: true, id: data?.id };
   } catch (err) {
     console.warn('Failed syncing feature usage to Supabase:', err);
-    return { success: false };
   }
+
+  return { success: false };
 }
 
-export async function fetchCloudFeatureUsage(userId: string): Promise<FeatureUsageLog[]> {
+export async function fetchCloudFeatureUsage(
+  userId: string,
+  limitCount = 100
+): Promise<FeatureUsageLog[]> {
   const supabase = getSupabaseClient();
   if (!supabase || !userId) return [];
 
+  // Try public.feature_usage first
+  try {
+    const { data, error } = await supabase
+      .from('feature_usage')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limitCount);
+
+    if (!error && Array.isArray(data) && data.length > 0) {
+      return data.map((row: any) => ({
+        id: row.id,
+        userId: row.user_id,
+        featureName: row.feature_name,
+        actionDescription:
+          row.action_description ||
+          row.metadata?.action_description ||
+          row.metadata?.description ||
+          undefined,
+        metadata: row.metadata || {},
+        createdAt: row.created_at,
+      }));
+    }
+  } catch {}
+
+  // Fall back to public.feature_usage_logs
   try {
     const { data, error } = await supabase
       .from('feature_usage_logs')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(limitCount);
 
     if (error) {
       console.warn('Error fetching feature usage from Supabase:', error.message);
@@ -905,6 +950,11 @@ export async function fetchCloudFeatureUsage(userId: string): Promise<FeatureUsa
       id: row.id,
       userId: row.user_id,
       featureName: row.feature_name,
+      actionDescription:
+        row.action_description ||
+        row.metadata?.action_description ||
+        row.metadata?.description ||
+        undefined,
       metadata: row.metadata || {},
       createdAt: row.created_at,
     }));
@@ -913,5 +963,14 @@ export async function fetchCloudFeatureUsage(userId: string): Promise<FeatureUsa
     return [];
   }
 }
+
+/**
+ * Specifically fetches the last 5 recent usage logs from the Supabase feature_usage table
+ * to provide a quick snapshot of candidate activity on the UserDashboard.
+ */
+export async function fetchRecentUsageLogs(userId: string, count = 5): Promise<FeatureUsageLog[]> {
+  return fetchCloudFeatureUsage(userId, count);
+}
+
 
 

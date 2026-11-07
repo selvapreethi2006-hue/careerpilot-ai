@@ -50,6 +50,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   // Core Top Links
   const primaryNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, protected: true },
+    { id: 'mock-interviews', label: 'AI Interview', icon: Mic, protected: true },
     { id: 'career-mentor', label: 'AI Mentor', icon: Compass, protected: true },
     { id: 'resume-analyzer', label: 'Resume', icon: FileText, protected: true },
     { id: 'jobs', label: 'Find Jobs', icon: Globe2, protected: false },
@@ -58,9 +59,9 @@ export const Navigation: React.FC<NavigationProps> = ({
 
   // Extended AI Suite Dropdown Items
   const aiSuiteItems = [
+    { id: 'mock-interviews', label: 'Real Interview AI', icon: Mic, desc: 'Live voice & text simulation with AI hiring manager' },
     { id: 'skill-gap', label: 'Skill Gap Analyzer', icon: Target, desc: 'Identify missing competencies & priorities' },
     { id: 'learning-roadmap', label: 'Learning Roadmap', icon: BookOpen, desc: 'Personalized weekly & daily curriculum' },
-    { id: 'mock-interviews', label: 'Mock Interview Platform', icon: Mic, desc: 'Voice & text practice with AI grading' },
     { id: 'job-matcher', label: 'JD Matcher', icon: Target, desc: 'Match resume against job descriptions' },
     { id: 'cover-letter', label: 'Cover Letter Generator', icon: Mail, desc: 'Persuasive custom application letters' },
     { id: 'outreach-assistant', label: 'Outreach Assistant', icon: Send, desc: 'Recruiter InMails & LinkedIn notes' },

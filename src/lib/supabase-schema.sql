@@ -492,7 +492,8 @@ CREATE POLICY "Users delete own resume files"
   );
 
 -- ==============================================================================
--- 14. FEATURE USAGE TRACKING & ENGAGEMENT METRICS TABLE
+-- 14. FEATURE USAGE TRACKING & ENGAGEMENT METRICS TABLES
+-- Supports both public.feature_usage and public.feature_usage_logs
 -- ==============================================================================
 CREATE TABLE IF NOT EXISTS public.feature_usage_logs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -529,4 +530,34 @@ DROP POLICY IF EXISTS "usage_logs_delete_own" ON public.feature_usage_logs;
 CREATE POLICY "usage_logs_delete_own" ON public.feature_usage_logs
   FOR DELETE TO authenticated
   USING (auth.uid() = user_id);
+
+-- Also create public.feature_usage table for full compatibility
+CREATE TABLE IF NOT EXISTS public.feature_usage (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  feature_name TEXT NOT NULL,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_feature_usage_user_date ON public.feature_usage(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_feature_usage_user_feature ON public.feature_usage(user_id, feature_name);
+
+ALTER TABLE public.feature_usage ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "feature_usage_select_own" ON public.feature_usage;
+CREATE POLICY "feature_usage_select_own" ON public.feature_usage
+  FOR SELECT TO authenticated
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "feature_usage_insert_own" ON public.feature_usage;
+CREATE POLICY "feature_usage_insert_own" ON public.feature_usage
+  FOR INSERT TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "feature_usage_delete_own" ON public.feature_usage;
+CREATE POLICY "feature_usage_delete_own" ON public.feature_usage
+  FOR DELETE TO authenticated
+  USING (auth.uid() = user_id);
+
 

@@ -280,6 +280,8 @@ export interface MockInterviewQuestion {
   keyPointsToCover: string[];
   userAnswer?: string;
   timeSpentSeconds?: number;
+  followUpQuestion?: string;
+  followUpAnswer?: string;
   evaluation?: MockQuestionEvaluation;
 }
 
@@ -304,6 +306,7 @@ export interface MockInterviewSession {
   overallFeedback?: string;
   communicationSummary?: string;
   technicalSummary?: string;
+  hiringVerdict?: 'Strong Hire' | 'Hire' | 'Leaning Hire' | 'Needs Practice';
   completedAt?: string;
 }
 
@@ -521,6 +524,7 @@ export interface FeatureUsageLog {
   id: string;
   userId: string;
   featureName: FeatureUsageType;
+  actionDescription?: string;
   metadata?: Record<string, any>;
   createdAt: string;
 }

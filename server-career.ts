@@ -382,6 +382,52 @@ Respond ONLY with valid JSON:
     }
   });
 
+  // Dynamic AI Follow-up Question generator for Real AI Interview experience
+  router.post('/mock-interview/follow-up', async (req: Request, res: Response) => {
+    try {
+      const {
+        question = '',
+        userAnswer = '',
+        targetRole = 'Software Engineer',
+        category = 'technical',
+        difficulty = 'intermediate',
+      } = req.body;
+
+      const prompt = `You are a Principal Hiring Manager conducting a live interview for a ${targetRole} (${difficulty} level, ${category} round).
+Initial Question: "${question}"
+Candidate's Answer: "${userAnswer}"
+
+Act like a real human interviewer who listened carefully. Ask ONE sharp, conversational follow-up question that drills deeper into their specific answer, challenging assumptions, edge cases, failure scenarios, or architectural trade-offs.
+
+Respond ONLY with valid JSON:
+{
+  "followUpQuestion": "You mentioned choosing PostgreSQL over MongoDB. How would your schema and indexing strategy change if write throughput spiked by 50x?",
+  "intent": "Tests deep knowledge of write scaling and database bottleneck mitigation."
+}`;
+
+      const aiResponse = await generateWithGemini(prompt, 'application/json');
+      if (aiResponse?.text) {
+        try {
+          const parsed = JSON.parse(aiResponse.text);
+          return res.json({
+            followUpQuestion: parsed.followUpQuestion,
+            intent: parsed.intent || 'Probes architectural trade-offs and edge cases.',
+            aiEngine: aiResponse.modelUsed,
+          });
+        } catch {}
+      }
+
+      return res.json({
+        followUpQuestion: `Building on your point, what would be the single biggest point of failure in that architecture, and how would you detect and recover from it in production?`,
+        intent: 'Probes resilience, failure modes, and production observability.',
+        aiEngine: 'algorithmic-evaluator-v3',
+      });
+    } catch (err: any) {
+      console.error('Follow-up generation error:', err);
+      return res.status(500).json({ error: 'Failed to generate follow-up question.' });
+    }
+  });
+
   // ---------------------------------------------------------------------------
   // 3. PERSONALIZED AI LEARNING ROADMAP
   // ---------------------------------------------------------------------------
